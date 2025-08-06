@@ -297,6 +297,7 @@ pattern = '''
 self.silent = (config.silent)
 '''
 payload = '''
+self.config.marquee = self.config.marquee and not G.SETTINGS.reduced_motion
 self.config.hold = self.config.hold or self.config.marquee and 1.5 or nil
 self.config.scroll_speed = self.config.scroll_speed or self.config.marquee and 0.1 or nil
 '''
