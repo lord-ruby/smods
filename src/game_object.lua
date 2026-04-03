@@ -3372,7 +3372,7 @@ Set `prefix_config.key = false` on your object instead.]]):format(obj.key), obj.
         inject = function(self)
             self.full_path = (self.mod and self.mod.path or SMODS.path) ..
                 'assets/shaders/' .. self.path
-            local file = assert(NFSread(self.full_path),
+            local file = assert(NFS.read(self.full_path),
                 ('Failed to collect file data for Shader %s'):format(self.key))
             local lovely_success, lovely = pcall(require, "lovely")
             if lovely_success and lovely.apply_patches then
