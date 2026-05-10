@@ -394,12 +394,6 @@ Set `prefix_config.key = false` on your object instead.]]):format(obj.key), obj.
     }
 
     -------------------------------------------------------------------------------------------------
-    ----- API CODE GameObject.CardModifiers
-    -------------------------------------------------------------------------------------------------
-
-    assert(load(SMODS.NFS.read(SMODS.path..'src/game_objects/card_modifiers.lua'), ('=[SMODS _ "src/game_objects/card_modifiers.lua"]')))()
-
-    -------------------------------------------------------------------------------------------------
     ----- API CODE GameObject.Attribute
     -------------------------------------------------------------------------------------------------
 
@@ -4006,6 +4000,12 @@ SMODS.UndiscoveredCompat = {
         func = function(self, chips, mult, flames) return chips ^ mult end,
         text = '^'
     }
+
+    -------------------------------------------------------------------------------------------------
+    ----- API CODE GameObject.CardModifiers
+    -------------------------------------------------------------------------------------------------
+
+    assert(load(SMODS.NFS.read(SMODS.path..'src/game_objects/card_modifiers.lua'), ('=[SMODS _ "src/game_objects/card_modifiers.lua"]')))()
 
     -------------------------------------------------------------------------------------------------
     ----- API IMPORT GameObject.DrawStep
