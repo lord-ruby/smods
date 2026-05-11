@@ -375,15 +375,19 @@ SMODS.DrawStep {
     key = 'modifiers',
     order = 41,
     func = function(self, layer)
-        for k, v in pairs(G.P_MODIFIERS) do
-            if self.ability[k] then
-                if v and v.draw and type(v.draw) == 'function' then
-                    v:draw(self, layer)
-                else
-                    G.shared_stickers[k].role.draw_major = self
-                    G.shared_stickers[k]:draw_shader('dissolve', nil, nil, nil, self.children.center)
-                    if v.draw_shader then
-                        G.shared_stickers[k]:draw_shader(type(v.draw_shader) == "string" and v.draw_shader or 'voucher', nil, self.ARGS.send_to_shader, nil, self.children.center)
+        for k, v in pairs(SMODS.CardModifiers) do
+            if self.ability[v.set] then
+                for i, m in pairs(self.ability[v.set]) do
+                    if k == m.key then
+                        if v and v.draw and type(v.draw) == 'function' then
+                            v:draw(self, layer)
+                        else
+                            G.shared_stickers[k].role.draw_major = self
+                            G.shared_stickers[k]:draw_shader('dissolve', nil, nil, nil, self.children.center)
+                            if v.draw_shader then
+                                G.shared_stickers[k]:draw_shader(type(v.draw_shader) == "string" and v.draw_shader or 'voucher', nil, self.ARGS.send_to_shader, nil, self.children.center)
+                            end
+                        end
                     end
                 end
             end

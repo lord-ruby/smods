@@ -18,9 +18,11 @@ for k, v in ipairs(SMODS.Sticker.obj_buffer) do
         badges[#badges+1] = v
     end
 end
-for i, v in pairs(G.P_MODIFIERS) do
-	if self.ability[i] and not v.hide_badge then
-        badges[#badges+1] = i
+for i, v in pairs(SMODS.CardModifiers) do
+	if self.ability[v.set] and not v.hide_badge then
+        for _, m in pairs(self.ability[v.set]) do
+            if i == m.key then badges[#badges+1] = i end
+        end
     end
 end
 '''
@@ -33,7 +35,7 @@ pattern = "if v == 'eternal' then*"
 match_indent = true
 position = "before"
 payload = '''
-local sticker = SMODS.Stickers[v] or G.P_MODIFIERS[v]
+local sticker = SMODS.Stickers[v] or SMODS.CardModifiers[v]
 if sticker then
     local t = { key = v, set = SMODS.Stickers[v] and 'Other' or sticker.set }
     local res = {}
@@ -106,7 +108,7 @@ for k, v in pairs(SMODS.Stickers) do
     G.BADGE_COL[k] = v.badge_colour
 end
 
-for k, v in pairs(G.P_MODIFIERS) do
+for k, v in pairs(SMODS.CardModifiers) do
     G.BADGE_COL[k] = v.badge_colour
 end
 '''

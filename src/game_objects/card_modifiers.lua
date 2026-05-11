@@ -1,10 +1,10 @@
 SMODS.CardModifiers = {}
 SMODS.CardModifier = SMODS.GameObject:extend {
-    obj_table = SMODS.CardModifier,
+    obj_table = SMODS.CardModifiers,
     obj_buffer = {},
     set = 'Modifier',
     required_params = {
-        'key',
+        'key', 'set'
     },
     rate = 0,
     atlas = 'stickers',
@@ -32,70 +32,108 @@ SMODS.CardModifier = SMODS.GameObject:extend {
         G.shared_stickers[self.key] = self.modifier_sprite
         G.P_CENTER_POOLS[self.set] = G.P_CENTER_POOLS[self.set] or {}
         SMODS.insert_pool(G.P_CENTER_POOLS[self.set], self)
-        G.P_MODIFIERS = G.P_MODIFIERS or {}
-        G.P_MODIFIERS[self.key] = self
     end,
-    should_apply = function(self, card, center, area, bypass_roll)
-        if
-            ( not self.sets or self.sets[center.set or {}]) and
-            (
-                center[self.key..'_compat'] or -- explicit marker
-                (
-                    center[self.key..'_compat'] == nil and
-                    ((self.default_compat and not self.compat_exceptions[center.key]) or -- default yes with no exception
-                    (not self.default_compat and self.compat_exceptions[center.key]))
-                ) -- default no with exception
-            ) and
-            (not self.needs_enable_flag or G.GAME.modifiers['enable_'..self.key])
-        then
-            self.last_roll = pseudorandom((area == G.pack_cards and 'packssj' or 'shopssj')..self.key..G.GAME.round_resets.ante)
-            return (bypass_roll ~= nil) and bypass_roll or self.last_roll > (1-self.rate)
+    apply = function(self, card)
+        card.ability[self.set] = card.ability[self.set] or {}
+        for i, v in pairs(card.ability[self.set]) do
+            if v.key == self.key then return end
         end
-    end,
-    apply = function(self, card, val)
-        if not val and card.ability[self.key] and type(card.ability[self.key]) == 'table' then
-            if card.ability[self.key].card_limit then card.ability.card_limit = card.ability.card_limit - card.ability[self.key].card_limit end
-            if card.ability[self.key].extra_slots_used then card.ability.extra_slots_used = card.ability.extra_slots_used - card.ability[self.key].extra_slots_used end
+        card.ability[self.set][#card.ability[self.set]+1] = copy_table(self.config) or {}
+        card.ability[self.set][#card.ability[self.set]].key = self.key
+        if type(self.on_apply) == "function" then
+            self:on_apply(card)
         end
-        card.ability[self.key] = val
-        if val and self.config and next(self.config) then
-            card.ability[self.key] = {}
-            for k, v in pairs(self.config) do
-                if type(v) == 'table' then
-                    card.ability[self.key][k] = copy_table(v)
-                else
-                    card.ability[self.key][k] = v
-                    if k == 'card_limit' or k == 'extra_slots_used' then
-                        card.ability[k] = (card.ability[k] or 0) + v
-                    end
-                end
+        if #card.ability[self.set] > SMODS.ModifierTypes[self.set].modifier_limit then
+            if type(SMODS.CardModifiers[card.ability[self.set][1]].on_remove) == "function" then
+                SMODS.CardModifiers[card.ability[self.set]]:on_remove(card)
             end
+            table.remove(card[self.set], 1)
         end
     end
 }
 
 function Card:calculate_modifier(context, key)
-    local mod = G.P_MODIFIERS[key]
-    if self.ability[key] and type(mod.calculate) == 'function' then
-        local o = mod:calculate(self, context)
-        if o then
-            if not o.card then o.card = self end
-            return o
+    local mod = SMODS.CardModifiers[key]
+    if self.ability[mod.set] and type(mod.calculate) == 'function' then
+        for i, v in pairs(self.ability[mod.set]) do
+            if v.key == key then
+                local o = mod:calculate(self, context)
+                if o then
+                    if not o.card then o.card = self end
+                    return o
+                end
+            end
         end
     end
 end
 
 function Card:add_modifier(modifier, bypass_check)
-    local modifier = G.P_MODIFIERS[modifier]
-    if bypass_check or (modifier and modifier.should_apply and type(modifier.should_apply) == 'function' and modifier:should_apply(self, self.config.center, self.area, true)) then
+    local modifier = SMODS.CardModifiers[modifier]
+    local in_sets = {}
+    for i, v in pairs(SMODS.ModifierTypes[modifier.set].sets or {}) do
+        if v == self.config.center.type then 
+            in_sets = true 
+            break 
+        end
+    end
+    if bypass_check or in_sets then
         modifier:apply(self, true)
         SMODS.enh_cache:write(self, nil)
     end
 end
 
 function Card:remove_modifier(modifier)
-    if self.ability[modifier] then
-        G.P_MODIFIERS[modifier]:apply(self, false)
-        SMODS.enh_cache:write(self, nil)
+    local modifier = SMODS.CardModifiers[modifier]
+    if self.ability[modifier.set] then
+        local c
+        for i, v in pairs(self.ability[modifier.set]) do
+            if v == modifier.key then c = i end
+        end
+        if c then
+            if type(SMODS.CardModifiers[self.ability[modifier.set][c]].on_remove) == "function" then
+                SMODS.CardModifiers[self.ability[modifier.set][c]]:on_remove(card)
+            end
+            self.ability[modifier.set][c] = nil
+            SMODS.enh_cache:write(self, nil)
+        end
     end
 end
+
+SMODS.ModifierTypes = {}
+SMODS.ModifierType = SMODS.ObjectType:extend {
+    obj_table = SMODS.ModifierTypes,
+    obj_buffer = ctype_buffer,
+    visible_buffer = {},
+    set = 'ModifierType',
+    required_params = {
+        'key',
+    },
+    prefix_config = { key = false },
+    collection_rows = { 6, 6 },
+    register = function(self)
+        SMODS.ModifierType.super.register(self)
+        if self:check_dependencies() then
+            -- this is duplicate information but it's more convenient to keep
+            if not self.no_collection then SMODS.ModifierType.visible_buffer[#SMODS.ModifierType.visible_buffer + 1] = self.key end
+        end
+    end,
+    inject = function(self)
+        SMODS.ObjectType.inject(self)
+        G.localization.descriptions[self.key] = G.localization.descriptions[self.key] or {}
+        G.FUNCS['your_collection_' .. string.lower(self.key) .. 's'] = function(e)
+            G.SETTINGS.paused = true
+            G.FUNCS.overlay_menu {
+                definition = self:create_UIBox_your_collection(),
+            }
+        end
+    end,
+    process_loc_text = function(self)
+        SMODS.process_loc_text(G.localization.misc.dictionary, 'k_' .. string.lower(self.key), self.loc_txt, 'name')
+        SMODS.process_loc_text(G.localization.misc.dictionary, 'b_' .. string.lower(self.key) .. '_cards',
+            self.loc_txt, 'collection')
+        SMODS.process_loc_text(G.localization.descriptions.Other, 'undiscovered_' .. string.lower(self.key),
+            self.loc_txt, 'undiscovered')
+    end,
+    modifier_limit = 1,
+    allowed_sets = { "Enhanced", "Default" }
+}

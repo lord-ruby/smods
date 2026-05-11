@@ -245,7 +245,7 @@ for _,k in ipairs(SMODS.Sticker.obj_buffer) do
         ret[v] = sticker
     end
 end
-for _,k in ipairs(G.P_MODIFIERS) do
+for _,k in ipairs(SMODS.CardModifiers) do
     local v = k
     local mod = card:calculate_modifier(context, k)
     if mod then
@@ -296,7 +296,7 @@ for _,k in ipairs(SMODS.Sticker.obj_buffer) do
         ret[v] = sticker
     end
 end
-for _,k in pairs(G.P_MODIFIERS) do
+for _,k in pairs(SMODS.CardModifiers) do
     local mod = card:calculate_modifier(context, k.key)
     if mod then
         ret[k.key] = mod

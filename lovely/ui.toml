@@ -500,7 +500,7 @@ pattern = '''
 elseif _c.set == 'Joker' then
 '''
 payload = '''
-elseif G.P_MODIFIERS[_c.key] then
+elseif SMODS.CardModifiers[_c.key] then
   localize{type = 'descriptions', key = _c.key, set = _c.set, nodes = desc_nodes, vars = specific_vars or _c.vars}
 elseif _c.set == 'Joker' then
 '''
